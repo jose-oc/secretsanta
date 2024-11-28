@@ -1,0 +1,53 @@
+# serverless.yml
+service: secret-santa-iac
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: eu-west-1
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "s3:ListBucket"
+          Resource:
+            - "arn:aws:s3:::${self:custom.bucketName}"
+        - Effect: "Allow"
+          Action:
+            - "s3:GetObject"
+            - "s3:PutObject"
+          Resource:
+            - "arn:aws:s3:::${self:custom.bucketName}/*"
+
+custom:
+  bucketName: secret-santa-pairings-${sls:stage}  # Unique bucket name for each stage
+
+functions:
+  pairingFunction:
+    handler: pairing.handler
+    events:
+      - http:
+          path: pairing
+          method: any
+          cors: true
+          # request:
+          #   parameters:
+          #     querystrings:
+          #       token: true
+
+resources:
+  Resources:
+    SecretSantaBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName}
+        LifecycleConfiguration:
+          Rules:
+            - Id: "AutoDeleteExpiredTokens"
+              Status: Enabled
+              ExpirationInDays: 2
+  Outputs:
+    BucketName:
+      Description: "Name of the S3 bucket for storing Secret Santa tokens"
+      Value: !Ref SecretSantaBucket
