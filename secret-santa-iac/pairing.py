@@ -75,6 +75,7 @@ def get_pairing(event):
     try:
         response = s3_client.get_object(Bucket=BUCKET_NAME, Key=f"{token}.json")
         token_data = json.loads(response['Body'].read())
+        token_status = token_data["status"]
         
         if token_data["status"] == "used":
             return {
@@ -96,7 +97,7 @@ def get_pairing(event):
             "headers": {
                 "Access-Control-Allow-Origin": "*"
             },
-            "body": json.dumps({"gifter": token_data["gifter"], "giftee": token_data["giftee"]})
+            "body": json.dumps({"status": token_status})
         }
     except ClientError as e:
         if e.response['Error']['Code'] == "NoSuchKey":
